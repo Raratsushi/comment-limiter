@@ -36,14 +36,6 @@ save_data(st.session_state.click_times)
 
 st.title("💬 Comment Button")
 
-# Reset button for testing
-if st.button("Reset clicks (for testing)"):
-    st.session_state.click_times = []
-    if os.path.exists(DATA_FILE):
-        os.remove(DATA_FILE)
-    st.success("Click data reset!")
-    st.rerun()
-
 # Main comment button
 if len(st.session_state.click_times) < MAX_CLICKS:
     if st.button(f"Comment ({len(st.session_state.click_times)})"):
@@ -54,9 +46,12 @@ else:
     # Blocking click = oldest in current batch
     blocking_click = st.session_state.click_times[0]
     next_available = blocking_click + timedelta(hours=WINDOW_HOURS)
-    # Convert UTC to local time (IST in your case)
-    next_local = next_available.astimezone()
+    
+    # Convert UTC to Indian Standard Time (UTC+5:30)
+    IST = timezone(timedelta(hours=5, minutes=30))
+    next_ist = next_available.astimezone(IST)
+    
     st.error(
         f"No more clicks! Next click available at "
-        f"{next_local.strftime('%Y-%m-%d %H:%M:%S %Z')}"
+        f"{next_ist.strftime('%Y-%m-%d %H:%M:%S %Z')}"
     )
