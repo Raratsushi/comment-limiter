@@ -27,19 +27,25 @@ def save_data(click_times):
 if "click_times" not in st.session_state:
     st.session_state.click_times = load_data()
 
-# Clean old clicks
+# Clean old clicks (remove anything older than 24 hours)
 cutoff = datetime.now() - timedelta(hours=WINDOW_HOURS)
 st.session_state.click_times = [t for t in st.session_state.click_times if t > cutoff]
 save_data(st.session_state.click_times)
 
 st.title("💬 Comment Button")
 
-# Show button
+# Show button if under the limit
 if len(st.session_state.click_times) < MAX_CLICKS:
     if st.button(f"Comment ({len(st.session_state.click_times)})"):
         st.session_state.click_times.append(datetime.now())
         save_data(st.session_state.click_times)
-        st.rerun()   # ✅ updated
+        st.rerun()   # refresh the app after clicking
 else:
-    next_available = min(st.session_state.click_times) + timedelta(hours=WINDOW_HOURS)
-    st.error(f"No more clicks! Next click available at {next_available.strftime('%Y-%m-%d %H:%M:%S')}")
+    # Find the 100th most recent click (the one blocking further clicks)
+    sorted_clicks = sorted(st.session_state.click_times, reverse=True)
+    blocking_click = sorted_clicks[MAX_CLICKS - 1]
+    next_available = blocking_click + timedelta(hours=WINDOW_HOURS)
+    st.error(
+        f"No more clicks! Next click available at "
+        f"{next_available.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
