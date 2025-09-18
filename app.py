@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import os
 
@@ -13,7 +13,8 @@ def load_data():
         with open(DATA_FILE, "r") as f:
             try:
                 timestamps = json.load(f)
-                return [datetime.fromisoformat(ts) for ts in timestamps]
+                # Convert to UTC datetime objects
+                return [datetime.fromisoformat(ts).replace(tzinfo=timezone.utc) for ts in timestamps]
             except:
                 return []
     return []
@@ -27,15 +28,15 @@ def save_data(click_times):
 if "click_times" not in st.session_state:
     st.session_state.click_times = load_data()
 
-# Always prune old clicks and sort
-cutoff = datetime.now() - timedelta(hours=WINDOW_HOURS)
+# Prune old clicks (older than 24 hours) and sort
+cutoff = datetime.now(timezone.utc) - timedelta(hours=WINDOW_HOURS)
 st.session_state.click_times = [t for t in st.session_state.click_times if t > cutoff]
 st.session_state.click_times.sort()  # oldest → newest
 save_data(st.session_state.click_times)
 
 st.title("💬 Comment Button")
 
-# Optional reset button for testing
+# Reset button for testing
 if st.button("Reset clicks (for testing)"):
     st.session_state.click_times = []
     if os.path.exists(DATA_FILE):
@@ -43,17 +44,19 @@ if st.button("Reset clicks (for testing)"):
     st.success("Click data reset!")
     st.rerun()
 
-# Show main comment button
+# Main comment button
 if len(st.session_state.click_times) < MAX_CLICKS:
     if st.button(f"Comment ({len(st.session_state.click_times)})"):
-        st.session_state.click_times.append(datetime.now())
+        st.session_state.click_times.append(datetime.now(timezone.utc))
         save_data(st.session_state.click_times)
         st.rerun()
 else:
-    # Blocking click = oldest in current 100
+    # Blocking click = oldest in current batch
     blocking_click = st.session_state.click_times[0]
     next_available = blocking_click + timedelta(hours=WINDOW_HOURS)
+    # Convert UTC to local time (IST in your case)
+    next_local = next_available.astimezone()
     st.error(
         f"No more clicks! Next click available at "
-        f"{next_available.strftime('%Y-%m-%d %H:%M:%S')}"
+        f"{next_local.strftime('%Y-%m-%d %H:%M:%S %Z')}"
     )
