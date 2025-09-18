@@ -30,19 +30,27 @@ if "click_times" not in st.session_state:
 # Always prune old clicks and sort
 cutoff = datetime.now() - timedelta(hours=WINDOW_HOURS)
 st.session_state.click_times = [t for t in st.session_state.click_times if t > cutoff]
-st.session_state.click_times.sort()  # keep oldest → newest
+st.session_state.click_times.sort()  # oldest → newest
 save_data(st.session_state.click_times)
 
 st.title("💬 Comment Button")
 
-# Show button if under the limit
+# Optional reset button for testing
+if st.button("Reset clicks (for testing)"):
+    st.session_state.click_times = []
+    if os.path.exists(DATA_FILE):
+        os.remove(DATA_FILE)
+    st.success("Click data reset!")
+    st.rerun()
+
+# Show main comment button
 if len(st.session_state.click_times) < MAX_CLICKS:
     if st.button(f"Comment ({len(st.session_state.click_times)})"):
         st.session_state.click_times.append(datetime.now())
         save_data(st.session_state.click_times)
-        st.rerun()   # refresh the app after clicking
+        st.rerun()
 else:
-    # Blocking click is the first (oldest) of the last 100
+    # Blocking click = oldest in current 100
     blocking_click = st.session_state.click_times[0]
     next_available = blocking_click + timedelta(hours=WINDOW_HOURS)
     st.error(
