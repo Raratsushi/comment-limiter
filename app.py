@@ -39,7 +39,7 @@ if len(st.session_state.click_times) < MAX_CLICKS:
     if st.button(f"Comment ({len(st.session_state.click_times)})"):
         st.session_state.click_times.append(datetime.now())
         save_data(st.session_state.click_times)
-        st.experimental_rerun()
+        st.rerun()   # ✅ updated
 else:
     next_available = min(st.session_state.click_times) + timedelta(hours=WINDOW_HOURS)
     st.error(f"No more clicks! Next click available at {next_available.strftime('%Y-%m-%d %H:%M:%S')}")
